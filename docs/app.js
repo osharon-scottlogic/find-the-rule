@@ -43,7 +43,10 @@ var rules = [
         function (a, b, c) { return (a + c < b); },
         function (a, b, c) { return (a + c > b); },
         function (a, b, c) { return (b + c < a); },
-        function (a, b, c) { return (b + c > a); }
+        function (a, b, c) { return (b + c > a); },
+        function (a, b, c) { return (a + b === a); },
+        function (a, b, c) { return (a + c === b); },
+        function (a, b, c) { return (a + b === c); }
     ],
     [
         function (a, b, c) { return (a <= b && b <= c); },
@@ -104,9 +107,13 @@ var App = /** @class */ (function (_super) {
             evt.preventDefault();
             return false;
         };
-        _this.makeAssumption = function (evt) {
+        _this.makeAssumption = function () {
             var assumption = _this.state.assumption;
             if (!assumption || assumption.length <= 5) {
+                return;
+            }
+            console.log(assumption);
+            if (assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
                 return;
             }
             var method = function (a, b, c) { return eval(assumption); };

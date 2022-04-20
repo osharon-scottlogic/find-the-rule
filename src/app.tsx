@@ -14,7 +14,10 @@ const rules:Rule[][] = [
 		(a,b,c)=>(a+c < b),
 		(a,b,c)=>(a+c > b),
 		(a,b,c)=>(b+c < a),
-		(a,b,c)=>(b+c > a)
+		(a,b,c)=>(b+c > a),
+		(a,b,c)=>(a+b === a),
+		(a,b,c)=>(a+c === b),
+		(a,b,c)=>(a+b === c)
 	],
 	[
 		(a,b,c)=>(a<=b && b<=c),
@@ -82,11 +85,16 @@ class App extends Component {
 		return false;
 	}
 
-	makeAssumption = (evt:Event) => { 
-		const assumption = this.state.assumption as string;
+	makeAssumption = () => { 
+		let assumption = this.state.assumption as string;
 
 		if (!assumption || assumption.length <= 5) {
 			return;
+		}
+
+		console.log(assumption);
+		if (assumption.indexOf('=>') > -1 && !confirm(`'=>' in JS doesn't mean equal-or-great. Do you with to process?`)) {
+			return
 		}
 
 		const method:Rule = (a,b,c) => { return eval(assumption); }
