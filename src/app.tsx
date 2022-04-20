@@ -109,9 +109,9 @@ class App extends Component {
 				<section class="experiment">
 					<h2>1. Experiment</h2>
 					<form onSubmit={this.procFormAndCancelSubmit.bind(null, this.test)} className="testForm">
-						<input type="number" value={state.val.a} onInput={this.updateVal.bind(null,'a')} />
-						<input type="number" value={state.val.b} onInput={this.updateVal.bind(null,'b')}/>
-						<input type="number" value={state.val.c} onInput={this.updateVal.bind(null,'c')} />
+						<input type="number" min={0} max={99} value={state.val.a} onInput={this.updateVal.bind(null,'a')} />
+						<input type="number" min={0} max={99} value={state.val.b} onInput={this.updateVal.bind(null,'b')}/>
+						<input type="number" min={0} max={99} value={state.val.c} onInput={this.updateVal.bind(null,'c')} />
 						<button type="submit">Check</button>
 					</form>
 				</section>
@@ -120,10 +120,11 @@ class App extends Component {
 					<ol>{ state.tests.map(({a, b, c, actual}) => <li><span>{a}</span><span>{b}</span><span>{c}</span><span> {actual ? '✅': '❌'}</span></li>)}</ol>
 				</aside>
 				<section class="hyposis">
-					<h2>3. Submit Your Hyposis</h2>
+					<h2>3. Submit Your Hypothesis</h2>
+					<div class="warning">Careful! you can only submit once!</div>
 					<form onSubmit={this.procFormAndCancelSubmit.bind(null, this.makeAssumption)}>
 						<code><pre>(a,b,c) =&gt; {'{'} return <input value={state.assumption} onInput={this.updateAssumption} type="text" minLength={5}/> {'}'};</pre></code>
-						<button type="submit">Check</button>
+						<button type="submit">Submit</button>
 					</form>
 					{ (state.result!==undefined) ? (state.result!==true ?
 						<dialog open>
