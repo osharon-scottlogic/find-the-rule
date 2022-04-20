@@ -2,7 +2,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 
 type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 type Values = {a:number|'', b:number|'', c:number|''};
-type State = {tests:Test[], rule:Rule, level: number, assumption?:string, result?:boolean, val: Values};
+type State = {tests:Test[], level: number, assumption?:string, result?:boolean, val: Values};
 type Rule = (a:number, b:number, c:number)=>boolean;
 
 class HypothesisTest {
@@ -46,6 +46,8 @@ const rules:Rule[][] = [
 		(a,b,c)=>(b+c >= a)
 	]];
 
+let rule:Rule = rules[0][0];
+
 function randomPick(arr:any[]):any {
 	return arr[Math.floor(Math.random()*arr.length)];
 }
@@ -54,7 +56,8 @@ function getState(level:number):State {
 	if (level < rules.length - 1) {
 		level++;
 	}
-	const rule = randomPick(rules[level]);
+	
+	rule = randomPick(rules[level]);
 
 	return {
 		tests:[{a:1,b:2,c:3,actual:rule(1,2,3)}],
@@ -62,7 +65,6 @@ function getState(level:number):State {
 		result: undefined,
 		val:{a:'',b:'',c:''},
 		level,
-		rule
 	};
 }
 class App extends Component {
@@ -79,7 +81,7 @@ class App extends Component {
 		const a = +this.state.val.a;
 		const b = +this.state.val.b;
 		const c = +this.state.val.c;
-		this.addTest({a,b,c, actual:this.state.rule(a,b,c)});
+		this.addTest({a,b,c, actual: rule(a,b,c)});
 	};
 
 	updateVal = (key:'a'|'b'|'c', evt:Event) => {
@@ -115,7 +117,7 @@ class App extends Component {
 			for (let b=0;b<10;b++) {
 				for (let c=0;c<10;c++) {
 					try {
-						if (hypothesis.test(a,b,c) !== this.state.rule(a,b,c)) {
+						if (hypothesis.test(a,b,c) !== rule(a,b,c)) {
 							return this.setResult(false);
 						}
 					}
@@ -156,7 +158,7 @@ class App extends Component {
 						<dialog open>
 							<h2>Fail!</h2>
 							You suggest <code><pre class="expected">function (a, b, c) {'{'} return ({state.assumption}); {'}'}</pre></code>
-							But the rule was <code><pre class="actual">{this.state.rule.toString()}</pre></code>
+							But the rule was <code><pre class="actual">{rule.toString()}</pre></code>
 							<button onClick={this.restart} class="restart">🔄 Try Another</button>
 						</dialog> : <dialog open>
 							Well done!

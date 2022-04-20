@@ -72,6 +72,7 @@ var rules = [
         function (a, b, c) { return (b + c >= a); }
     ]
 ];
+var rule = rules[0][0];
 function randomPick(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -79,14 +80,13 @@ function getState(level) {
     if (level < rules.length - 1) {
         level++;
     }
-    var rule = randomPick(rules[level]);
+    rule = randomPick(rules[level]);
     return {
         tests: [{ a: 1, b: 2, c: 3, actual: rule(1, 2, 3) }],
         assumption: '',
         result: undefined,
         val: { a: '', b: '', c: '' },
         level: level,
-        rule: rule
     };
 }
 var App = /** @class */ (function (_super) {
@@ -103,7 +103,7 @@ var App = /** @class */ (function (_super) {
             var a = +_this.state.val.a;
             var b = +_this.state.val.b;
             var c = +_this.state.val.c;
-            _this.addTest({ a: a, b: b, c: c, actual: _this.state.rule(a, b, c) });
+            _this.addTest({ a: a, b: b, c: c, actual: rule(a, b, c) });
         };
         _this.updateVal = function (key, evt) {
             var val = __assign({}, _this.state.val);
@@ -130,7 +130,7 @@ var App = /** @class */ (function (_super) {
                 for (var b = 0; b < 10; b++) {
                     for (var c = 0; c < 10; c++) {
                         try {
-                            if (hypothesis.test(a, b, c) !== _this.state.rule(a, b, c)) {
+                            if (hypothesis.test(a, b, c) !== rule(a, b, c)) {
                                 return _this.setResult(false);
                             }
                         }
@@ -194,7 +194,7 @@ var App = /** @class */ (function (_super) {
                                 '}')),
                         "But the rule was ",
                         h("code", null,
-                            h("pre", { class: "actual" }, this.state.rule.toString())),
+                            h("pre", { class: "actual" }, rule.toString())),
                         h("button", { onClick: this.restart, class: "restart" }, "\uD83D\uDD04 Try Another")) : h("dialog", { open: true },
                     "Well done!",
                     h("button", { onClick: this.restart, class: "restart" }, "\uD83D\uDD04 Try Another"))) : '')));
