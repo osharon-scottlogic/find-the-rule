@@ -5,12 +5,24 @@ type Values = {a:number|'', b:number|'', c:number|''};
 type State = {tests:Test[], rule:Rule, level: number, assumption?:string, result?:boolean, val: Values};
 type Rule = (a:number, b:number, c:number)=>boolean;
 
+class HypothesisTest {
+	assumption:string;
+
+	constructor(assumption:string) {
+		this.assumption = assumption;
+	}
+
+	test(a:number,b:number,c:number) {
+		return eval(this.assumption);
+	}
+}
+
 const rules:Rule[][] = [
 	[(a,b,c)=>(a<b && b<c)],
 	[
 		(a,b,c)=>(a>b && b>c),
 		(a,b,c)=>(a+b < c),
-		(a,b,c)=>(a+b < c),
+		(a,b,c)=>(a+b > c),
 		(a,b,c)=>(a+c < b),
 		(a,b,c)=>(a+c > b),
 		(a,b,c)=>(b+c < a),
@@ -27,7 +39,7 @@ const rules:Rule[][] = [
 		(a,b,c)=>(a>b && b>=c),
 		(a,b,c)=>(a>=b && b>c),
 		(a,b,c)=>(a+b <= c),
-		(a,b,c)=>(a+b <= c),
+		(a,b,c)=>(a+b >= c),
 		(a,b,c)=>(a+c <= b),
 		(a,b,c)=>(a+c >= b),
 		(a,b,c)=>(b+c <= a),
@@ -97,12 +109,18 @@ class App extends Component {
 			return
 		}
 
-		const method:Rule = (a,b,c) => { return eval(assumption); }
-
+		const hypothesis:HypothesisTest = new HypothesisTest(assumption);
+		
 		for (let a=0;a<10;a++) {
 			for (let b=0;b<10;b++) {
 				for (let c=0;c<10;c++) {
-					if (method(a,b,c) !== this.state.rule(a,b,c)) {
+					try {
+						if (hypothesis.test(a,b,c) !== this.state.rule(a,b,c)) {
+							return this.setResult(false);
+						}
+					}
+					catch(err) {
+						console.error(err);
 						return this.setResult(false);
 					}
 				}

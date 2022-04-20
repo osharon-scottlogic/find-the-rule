@@ -34,12 +34,21 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { h, render, Component } from 'https://unpkg.com/preact?module';
+var HypothesisTest = /** @class */ (function () {
+    function HypothesisTest(assumption) {
+        this.assumption = assumption;
+    }
+    HypothesisTest.prototype.test = function (a, b, c) {
+        return eval(this.assumption);
+    };
+    return HypothesisTest;
+}());
 var rules = [
     [function (a, b, c) { return (a < b && b < c); }],
     [
         function (a, b, c) { return (a > b && b > c); },
         function (a, b, c) { return (a + b < c); },
-        function (a, b, c) { return (a + b < c); },
+        function (a, b, c) { return (a + b > c); },
         function (a, b, c) { return (a + c < b); },
         function (a, b, c) { return (a + c > b); },
         function (a, b, c) { return (b + c < a); },
@@ -56,7 +65,7 @@ var rules = [
         function (a, b, c) { return (a > b && b >= c); },
         function (a, b, c) { return (a >= b && b > c); },
         function (a, b, c) { return (a + b <= c); },
-        function (a, b, c) { return (a + b <= c); },
+        function (a, b, c) { return (a + b >= c); },
         function (a, b, c) { return (a + c <= b); },
         function (a, b, c) { return (a + c >= b); },
         function (a, b, c) { return (b + c <= a); },
@@ -116,11 +125,17 @@ var App = /** @class */ (function (_super) {
             if (assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
                 return;
             }
-            var method = function (a, b, c) { return eval(assumption); };
+            var hypothesis = new HypothesisTest(assumption);
             for (var a = 0; a < 10; a++) {
                 for (var b = 0; b < 10; b++) {
                     for (var c = 0; c < 10; c++) {
-                        if (method(a, b, c) !== _this.state.rule(a, b, c)) {
+                        try {
+                            if (hypothesis.test(a, b, c) !== _this.state.rule(a, b, c)) {
+                                return _this.setResult(false);
+                            }
+                        }
+                        catch (err) {
+                            console.error(err);
                             return _this.setResult(false);
                         }
                     }
