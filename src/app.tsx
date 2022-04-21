@@ -3,7 +3,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 (() =>{
 	type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 	type Values = {a:number|'', b:number|'', c:number|''};
-	type State = {tests:Test[], level: number, assumption?:string, result?:boolean, val: Values};
+	type State = {tests:Test[], level: number, assumption?:string, isFinished:boolean, val: Values};
 	type Rule = (a:number, b:number, c:number)=>boolean;
 
 	class HypothesisTest {
@@ -48,6 +48,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 		]];
 
 	let rule:Rule = rules[0][0];
+	let isSuccess = false;
 
 	function randomPick(arr:any[]):any {
 		return arr[Math.floor(Math.random()*arr.length)];
@@ -63,7 +64,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 		return {
 			tests:[{a:1,b:2,c:3,actual:rule(1,2,3)}],
 			assumption: '',
-			result: undefined,
+			isFinished: false,
 			val:{a:'',b:'',c:''},
 			level
 		};
@@ -74,9 +75,12 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 		//@ts-ignore
 		addTest = (newTest:Test) => this.setState(state => ({ ...state, tests: [...state.tests, newTest ]}));
 		setAssumption = (assumption:string) => this.setState(state => ({ ...state, assumption}));
-		setResult = (result:boolean) => this.setState(state => ({ ...state, result}));
+		finish = () => this.setState(state => ({ ...state, isFinished: true}));
 
-		restart = () => this.setState(getState(this.state.level));
+		restart = () => {
+			isSuccess = false;
+			this.setState(getState(this.state.level)); 
+		};
 
 		test = () => { 
 			const a = +this.state.val.a;
@@ -107,7 +111,6 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 				return;
 			}
 
-			console.log(assumption);
 			if (assumption.indexOf('=>') > -1 && !confirm(`'=>' in JS doesn't mean equal-or-great. Do you with to process?`)) {
 				return
 			}
@@ -119,17 +122,18 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 					for (let c=0;c<10;c++) {
 						try {
 							if (hypothesis.test(a,b,c) !== rule(a,b,c)) {
-								return this.setResult(false);
+								return this.finish();
 							}
 						}
 						catch(err) {
 							console.error(err);
-							return this.setResult(false);
+							return this.finish();
 						}
 					}
 				}
 			}
-			this.setResult(true);
+			isSuccess = true;
+			return this.finish();
 		};
 
 		render(props:any, state:State) {
@@ -155,16 +159,16 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 							<code><pre>(a,b,c) =&gt; {'{'} return <input value={state.assumption} onInput={this.updateAssumption} type="text" minLength={5}/> {'}'};</pre></code>
 							<button type="submit">Submit</button>
 						</form>
-						{ (state.result!==undefined) ? (state.result!==true ?
+						{ (state.isFinished) ? (isSuccess ?
 							<dialog open>
+							Well done!
+							<button onClick={this.restart} class="restart">🔄 Try Another</button>
+							</dialog> : <dialog open>
 								<h2>Fail!</h2>
 								You suggest <code><pre class="expected">function (a, b, c) {'{'} return ({state.assumption}); {'}'}</pre></code>
 								But the rule was <code><pre class="actual">{rule.toString()}</pre></code>
 								<button onClick={this.restart} class="restart">🔄 Try Another</button>
-							</dialog> : <dialog open>
-								Well done!
-								<button onClick={this.restart} class="restart">🔄 Try Another</button>
-								</dialog>) :'' }
+							</dialog>) :'' }
 					</section>
 				</main>
 			);

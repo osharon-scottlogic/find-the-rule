@@ -74,6 +74,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
         ]
     ];
     var rule = rules[0][0];
+    var isSuccess = false;
     function randomPick(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
@@ -85,7 +86,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
         return {
             tests: [{ a: 1, b: 2, c: 3, actual: rule(1, 2, 3) }],
             assumption: '',
-            result: undefined,
+            isFinished: false,
             val: { a: '', b: '', c: '' },
             level: level
         };
@@ -98,8 +99,11 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
             //@ts-ignore
             _this.addTest = function (newTest) { return _this.setState(function (state) { return (__assign(__assign({}, state), { tests: __spreadArray(__spreadArray([], state.tests, true), [newTest], false) })); }); };
             _this.setAssumption = function (assumption) { return _this.setState(function (state) { return (__assign(__assign({}, state), { assumption: assumption })); }); };
-            _this.setResult = function (result) { return _this.setState(function (state) { return (__assign(__assign({}, state), { result: result })); }); };
-            _this.restart = function () { return _this.setState(getState(_this.state.level)); };
+            _this.finish = function () { return _this.setState(function (state) { return (__assign(__assign({}, state), { isFinished: true })); }); };
+            _this.restart = function () {
+                isSuccess = false;
+                _this.setState(getState(_this.state.level));
+            };
             _this.test = function () {
                 var a = +_this.state.val.a;
                 var b = +_this.state.val.b;
@@ -122,7 +126,6 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                 if (!assumption || assumption.length <= 5) {
                     return;
                 }
-                console.log(assumption);
                 if (assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
                     return;
                 }
@@ -132,17 +135,18 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                         for (var c = 0; c < 10; c++) {
                             try {
                                 if (hypothesis.test(a, b, c) !== rule(a, b, c)) {
-                                    return _this.setResult(false);
+                                    return _this.finish();
                                 }
                             }
                             catch (err) {
                                 console.error(err);
-                                return _this.setResult(false);
+                                return _this.finish();
                             }
                         }
                     }
                 }
-                _this.setResult(true);
+                isSuccess = true;
+                return _this.finish();
             };
             return _this;
         }
@@ -181,23 +185,23 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                                 '}',
                                 ";")),
                         h("button", { type: "submit" }, "Submit")),
-                    (state.result !== undefined) ? (state.result !== true ?
+                    (state.isFinished) ? (isSuccess ?
                         h("dialog", { open: true },
-                            h("h2", null, "Fail!"),
-                            "You suggest ",
-                            h("code", null,
-                                h("pre", { class: "expected" },
-                                    "function (a, b, c) ",
-                                    '{',
-                                    " return (",
-                                    state.assumption,
-                                    "); ",
-                                    '}')),
-                            "But the rule was ",
-                            h("code", null,
-                                h("pre", { class: "actual" }, rule.toString())),
+                            "Well done!",
                             h("button", { onClick: this.restart, class: "restart" }, "\uD83D\uDD04 Try Another")) : h("dialog", { open: true },
-                        "Well done!",
+                        h("h2", null, "Fail!"),
+                        "You suggest ",
+                        h("code", null,
+                            h("pre", { class: "expected" },
+                                "function (a, b, c) ",
+                                '{',
+                                " return (",
+                                state.assumption,
+                                "); ",
+                                '}')),
+                        "But the rule was ",
+                        h("code", null,
+                            h("pre", { class: "actual" }, rule.toString())),
                         h("button", { onClick: this.restart, class: "restart" }, "\uD83D\uDD04 Try Another"))) : '')));
         };
         return App;
