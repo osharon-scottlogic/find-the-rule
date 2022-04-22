@@ -1,92 +1,61 @@
 import { h, render, Component } from 'https://unpkg.com/preact?module';
 
+const worker = new Worker("webworker.js");
+
 (() =>{
 	type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 	type Values = {a:number|'', b:number|'', c:number|''};
-	type State = {tests:Test[], level: number, assumption?:string, isFinished:boolean, val: Values};
-	type Rule = (a:number, b:number, c:number)=>boolean;
+	type State = {tests:Test[], assumption?:string, actual?:string, isFinished:boolean, val: Values};
 
-	class HypothesisTest {
-		assumption:string;
-
-		constructor(assumption:string) {
-			this.assumption = assumption;
-		}
-
-		test(a:number,b:number,c:number) {
-			return eval(this.assumption);
-		}
-	}
-
-	const rules:Rule[][] = [
-		[(a,b,c)=>(a<b && b<c)],
-		[
-			(a,b,c)=>(a>b && b>c),
-			(a,b,c)=>(a+b < c),
-			(a,b,c)=>(a+b > c),
-			(a,b,c)=>(a+c < b),
-			(a,b,c)=>(a+c > b),
-			(a,b,c)=>(b+c < a),
-			(a,b,c)=>(b+c > a),
-			(a,b,c)=>(a+b === a),
-			(a,b,c)=>(a+c === b),
-			(a,b,c)=>(a+b === c)
-		],
-		[
-			(a,b,c)=>(a<=b && b<=c),
-			(a,b,c)=>(a<=b && b<c),
-			(a,b,c)=>(a<b && b<=c),
-			(a,b,c)=>(a>=b && b>=c),
-			(a,b,c)=>(a>b && b>=c),
-			(a,b,c)=>(a>=b && b>c),
-			(a,b,c)=>(a+b <= c),
-			(a,b,c)=>(a+b >= c),
-			(a,b,c)=>(a+c <= b),
-			(a,b,c)=>(a+c >= b),
-			(a,b,c)=>(b+c <= a),
-			(a,b,c)=>(b+c >= a)
-		]];
-
-	let rule:Rule = rules[0][0];
 	let isSuccess = false;
 
-	function randomPick(arr:any[]):any {
-		return arr[Math.floor(Math.random()*arr.length)];
-	}
-
-	function getState(level:number):State {
-		if (level < rules.length - 1) {
-			level++;
-		}
-		
-		rule = randomPick(rules[level]);
-
+	function getState():State {
 		return {
-			tests:[{a:1,b:2,c:3,actual:rule(1,2,3)}],
+			tests:[],
 			assumption: '',
+			actual: '',
 			isFinished: false,
 			val:{a:'',b:'',c:''},
-			level
 		};
 	}
 	class App extends Component {
-		state:State = getState(0);
+		state:State = getState();
 
 		//@ts-ignore
 		addTest = (newTest:Test) => this.setState(state => ({ ...state, tests: [...state.tests, newTest ]}));
 		setAssumption = (assumption:string) => this.setState(state => ({ ...state, assumption}));
 		finish = () => this.setState(state => ({ ...state, isFinished: true}));
 
+		constructor() {
+			super();
+			worker.addEventListener('message', (evt:MessageEvent) => {
+				switch(evt.data.type) {
+					case 'tested':
+						const {a,b,c, actual}:{a:number,b:number,c:number, actual:boolean } = evt.data;
+						this.addTest({a,b,c, actual});
+						break;
+					case 'finish':
+						this.setState(state => ({ ...state, actual: evt.data.actual, expected: evt.data.expected}));
+						isSuccess = evt.data.isSuccess;
+						this.finish();
+						break;
+				}
+			});
+
+			worker.postMessage({type:'test', a:1, b:2, c:3 });
+		}
 		restart = () => {
 			isSuccess = false;
-			this.setState(getState(this.state.level)); 
+			this.setState(getState()); 
+			worker.postMessage({type:'restart'});
+			worker.postMessage({type:'test', a:1, b:2, c:3 });
 		};
 
 		test = () => { 
 			const a = +this.state.val.a;
 			const b = +this.state.val.b;
 			const c = +this.state.val.c;
-			this.addTest({a,b,c, actual: rule(a,b,c)});
+			worker.postMessage({type: 'test', a,b,c});
 		};
 
 		updateVal = (key:'a'|'b'|'c', evt:Event) => {
@@ -105,35 +74,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 		}
 
 		makeAssumption = () => { 
-			let assumption = this.state.assumption as string;
-
-			if (!assumption || assumption.length <= 5) {
-				return;
-			}
-
-			if (assumption.indexOf('=>') > -1 && !confirm(`'=>' in JS doesn't mean equal-or-great. Do you with to process?`)) {
-				return
-			}
-
-			const hypothesis:HypothesisTest = new HypothesisTest(assumption);
-			
-			for (let a=0;a<10;a++) {
-				for (let b=0;b<10;b++) {
-					for (let c=0;c<10;c++) {
-						try {
-							if (hypothesis.test(a,b,c) !== rule(a,b,c)) {
-								return this.finish();
-							}
-						}
-						catch(err) {
-							console.error(err);
-							return this.finish();
-						}
-					}
-				}
-			}
-			isSuccess = true;
-			return this.finish();
+			worker.postMessage({ type: 'testHypothesis', assumption: this.state.assumption })
 		};
 
 		render(props:any, state:State) {
@@ -166,7 +107,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 							</dialog> : <dialog open>
 								<h2>Fail!</h2>
 								You suggest <code><pre class="expected">function (a, b, c) {'{'} return ({state.assumption}); {'}'}</pre></code>
-								But the rule was <code><pre class="actual">{rule.toString()}</pre></code>
+								But the rule was <code><pre class="actual">{state.actual}</pre></code>
 								<button onClick={this.restart} class="restart">🔄 Try Another</button>
 							</dialog>) :'' }
 					</section>

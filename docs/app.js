@@ -34,81 +34,38 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { h, render, Component } from 'https://unpkg.com/preact?module';
+var worker = new Worker("webworker.js");
 (function () {
-    var HypothesisTest = /** @class */ (function () {
-        function HypothesisTest(assumption) {
-            this.assumption = assumption;
-        }
-        HypothesisTest.prototype.test = function (a, b, c) {
-            return eval(this.assumption);
-        };
-        return HypothesisTest;
-    }());
-    var rules = [
-        [function (a, b, c) { return (a < b && b < c); }],
-        [
-            function (a, b, c) { return (a > b && b > c); },
-            function (a, b, c) { return (a + b < c); },
-            function (a, b, c) { return (a + b > c); },
-            function (a, b, c) { return (a + c < b); },
-            function (a, b, c) { return (a + c > b); },
-            function (a, b, c) { return (b + c < a); },
-            function (a, b, c) { return (b + c > a); },
-            function (a, b, c) { return (a + b === a); },
-            function (a, b, c) { return (a + c === b); },
-            function (a, b, c) { return (a + b === c); }
-        ],
-        [
-            function (a, b, c) { return (a <= b && b <= c); },
-            function (a, b, c) { return (a <= b && b < c); },
-            function (a, b, c) { return (a < b && b <= c); },
-            function (a, b, c) { return (a >= b && b >= c); },
-            function (a, b, c) { return (a > b && b >= c); },
-            function (a, b, c) { return (a >= b && b > c); },
-            function (a, b, c) { return (a + b <= c); },
-            function (a, b, c) { return (a + b >= c); },
-            function (a, b, c) { return (a + c <= b); },
-            function (a, b, c) { return (a + c >= b); },
-            function (a, b, c) { return (b + c <= a); },
-            function (a, b, c) { return (b + c >= a); }
-        ]
-    ];
-    var rule = rules[0][0];
     var isSuccess = false;
-    function randomPick(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    }
-    function getState(level) {
-        if (level < rules.length - 1) {
-            level++;
-        }
-        rule = randomPick(rules[level]);
+    function getState() {
         return {
-            tests: [{ a: 1, b: 2, c: 3, actual: rule(1, 2, 3) }],
+            tests: [],
             assumption: '',
+            actual: '',
             isFinished: false,
             val: { a: '', b: '', c: '' },
-            level: level
         };
     }
     var App = /** @class */ (function (_super) {
         __extends(App, _super);
         function App() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.state = getState(0);
+            var _this = _super.call(this) || this;
+            _this.state = getState();
             //@ts-ignore
             _this.addTest = function (newTest) { return _this.setState(function (state) { return (__assign(__assign({}, state), { tests: __spreadArray(__spreadArray([], state.tests, true), [newTest], false) })); }); };
             _this.setAssumption = function (assumption) { return _this.setState(function (state) { return (__assign(__assign({}, state), { assumption: assumption })); }); };
             _this.finish = function () { return _this.setState(function (state) { return (__assign(__assign({}, state), { isFinished: true })); }); };
             _this.restart = function () {
                 isSuccess = false;
-                _this.setState(getState(_this.state.level));
+                _this.setState(getState());
+                worker.postMessage({ type: 'restart' });
+                worker.postMessage({ type: 'test', a: 1, b: 2, c: 3 });
             };
             _this.test = function () {
                 var a = +_this.state.val.a;
                 var b = +_this.state.val.b;
                 var c = +_this.state.val.c;
-                _this.addTest({ a: a, b: b, c: c, actual: rule(a, b, c) });
+                worker.postMessage({ type: 'test', a: a, b: b, c: c });
             };
             _this.updateVal = function (key, evt) {
                 var val = __assign({}, _this.state.val);
@@ -122,32 +79,22 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                 return false;
             };
             _this.makeAssumption = function () {
-                var assumption = _this.state.assumption;
-                if (!assumption || assumption.length <= 5) {
-                    return;
-                }
-                if (assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
-                    return;
-                }
-                var hypothesis = new HypothesisTest(assumption);
-                for (var a = 0; a < 10; a++) {
-                    for (var b = 0; b < 10; b++) {
-                        for (var c = 0; c < 10; c++) {
-                            try {
-                                if (hypothesis.test(a, b, c) !== rule(a, b, c)) {
-                                    return _this.finish();
-                                }
-                            }
-                            catch (err) {
-                                console.error(err);
-                                return _this.finish();
-                            }
-                        }
-                    }
-                }
-                isSuccess = true;
-                return _this.finish();
+                worker.postMessage({ type: 'testHypothesis', assumption: _this.state.assumption });
             };
+            worker.addEventListener('message', function (evt) {
+                switch (evt.data.type) {
+                    case 'tested':
+                        var _a = evt.data, a = _a.a, b = _a.b, c = _a.c, actual = _a.actual;
+                        _this.addTest({ a: a, b: b, c: c, actual: actual });
+                        break;
+                    case 'finish':
+                        _this.setState(function (state) { return (__assign(__assign({}, state), { actual: evt.data.actual, expected: evt.data.expected })); });
+                        isSuccess = evt.data.isSuccess;
+                        _this.finish();
+                        break;
+                }
+            });
+            worker.postMessage({ type: 'test', a: 1, b: 2, c: 3 });
             return _this;
         }
         App.prototype.render = function (props, state) {
@@ -201,7 +148,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                                 '}')),
                         "But the rule was ",
                         h("code", null,
-                            h("pre", { class: "actual" }, rule.toString())),
+                            h("pre", { class: "actual" }, state.actual)),
                         h("button", { onClick: this.restart, class: "restart" }, "\uD83D\uDD04 Try Another"))) : '')));
         };
         return App;
