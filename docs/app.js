@@ -37,6 +37,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 (function () {
     var worker = new Worker("webworker.js");
     var isSuccess = false;
+    var ping = Math.random();
     function getState() {
         return {
             tests: [],
@@ -79,7 +80,8 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                 return false;
             };
             _this.makeAssumption = function () {
-                worker.postMessage({ type: 'testHypothesis', assumption: _this.state.assumption });
+                ping = Math.random();
+                worker.postMessage({ type: 'testHypothesis', assumption: _this.state.assumption, ping: ping });
             };
             worker.addEventListener('message', function (evt) {
                 switch (evt.data.type) {
@@ -88,7 +90,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
                         _this.addTest({ a: a, b: b, c: c, actual: actual });
                         break;
                     case 'finish':
-                        isSuccess = evt.data.isSuccess && (_this.state.assumption === evt.data.expected);
+                        isSuccess = evt.data.isSuccess && (ping === evt.data.pong);
                         _this.setState(function (state) { return (__assign(__assign({}, state), { actual: evt.data.actual, expected: evt.data.expected })); });
                         _this.finish();
                         break;

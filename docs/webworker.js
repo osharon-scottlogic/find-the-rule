@@ -80,10 +80,13 @@ self.addEventListener('message', function (evt) {
             self.postMessage({ type: 'tested', a: a, b: b, c: c, actual: rule(a, b, c) });
             break;
         case 'testHypothesis':
-            self.postMessage({ type: 'finish',
+            self.postMessage({
+                type: 'finish',
                 isSuccess: testHypothesis(evt.data.assumption),
                 expected: evt.data.assumption,
-                actual: rule.toString() });
+                actual: rule.toString(),
+                pong: evt.data.ping
+            });
             break;
     }
 }, false);

@@ -91,10 +91,13 @@ self.addEventListener('message', function(evt:MessageEvent) {
 			self.postMessage({type:'tested', a,b,c, actual: rule(a,b,c) });
 			break;
 		case 'testHypothesis':
-			self.postMessage({type:'finish',
-			isSuccess:testHypothesis(evt.data.assumption),
-			expected:evt.data.assumption,
-			actual: rule.toString()  });
+			self.postMessage({
+				type:'finish',
+				isSuccess:testHypothesis(evt.data.assumption),
+				expected:evt.data.assumption,
+				actual: rule.toString(),
+				pong: evt.data.ping
+			});
 			break;
 	}
 }, false);

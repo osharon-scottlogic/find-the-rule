@@ -3,10 +3,11 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 (() =>{
 	type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 	type Values = {a:number|'', b:number|'', c:number|''};
-	type State = {tests:Test[], assumption?:string, actual?:string, isFinished:boolean, val: Values};
+	type State = {tests:Test[], assumption?:string, actual?:string, isFinished:boolean, val: Values };
 
 	const worker = new Worker("webworker.js");
 	let isSuccess = false;
+	let ping = Math.random();
 
 	function getState():State {
 		return {
@@ -34,7 +35,7 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 						this.addTest({a,b,c, actual});
 						break;
 					case 'finish':
-						isSuccess = evt.data.isSuccess && (this.state.assumption===evt.data.expected);
+						isSuccess = evt.data.isSuccess && (ping===evt.data.pong);
 						this.setState(state => ({ ...state, actual: evt.data.actual, expected: evt.data.expected}));
 						this.finish();
 						break;
@@ -72,8 +73,9 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 			return false;
 		}
 
-		makeAssumption = () => { 
-			worker.postMessage({ type: 'testHypothesis', assumption: this.state.assumption })
+		makeAssumption = () => {
+			ping = Math.random();
+			worker.postMessage({ type: 'testHypothesis', assumption: this.state.assumption, ping })
 		};
 
 		render(props:any, state:State) {
