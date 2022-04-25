@@ -85,6 +85,5 @@ self.addEventListener('message', function (evt) {
                 expected: evt.data.assumption,
                 actual: rule.toString() });
             break;
-            break;
     }
 }, false);

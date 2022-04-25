@@ -1,12 +1,11 @@
 import { h, render, Component } from 'https://unpkg.com/preact?module';
 
-const worker = new Worker("webworker.js");
-
 (() =>{
 	type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 	type Values = {a:number|'', b:number|'', c:number|''};
 	type State = {tests:Test[], assumption?:string, actual?:string, isFinished:boolean, val: Values};
 
+	const worker = new Worker("webworker.js");
 	let isSuccess = false;
 
 	function getState():State {
@@ -35,8 +34,8 @@ const worker = new Worker("webworker.js");
 						this.addTest({a,b,c, actual});
 						break;
 					case 'finish':
+						isSuccess = evt.data.isSuccess && (this.state.assumption===evt.data.expected);
 						this.setState(state => ({ ...state, actual: evt.data.actual, expected: evt.data.expected}));
-						isSuccess = evt.data.isSuccess;
 						this.finish();
 						break;
 				}

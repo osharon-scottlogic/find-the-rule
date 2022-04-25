@@ -34,8 +34,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { h, render, Component } from 'https://unpkg.com/preact?module';
-var worker = new Worker("webworker.js");
 (function () {
+    var worker = new Worker("webworker.js");
     var isSuccess = false;
     function getState() {
         return {
@@ -88,8 +88,8 @@ var worker = new Worker("webworker.js");
                         _this.addTest({ a: a, b: b, c: c, actual: actual });
                         break;
                     case 'finish':
+                        isSuccess = evt.data.isSuccess && (_this.state.assumption === evt.data.expected);
                         _this.setState(function (state) { return (__assign(__assign({}, state), { actual: evt.data.actual, expected: evt.data.expected })); });
-                        isSuccess = evt.data.isSuccess;
                         _this.finish();
                         break;
                 }

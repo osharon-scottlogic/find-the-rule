@@ -96,6 +96,5 @@ self.addEventListener('message', function(evt:MessageEvent) {
 			expected:evt.data.assumption,
 			actual: rule.toString()  });
 			break;
-		break;
 	}
 }, false);
