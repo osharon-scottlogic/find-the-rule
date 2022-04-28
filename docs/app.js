@@ -35,7 +35,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 import { h, render, Component } from 'https://unpkg.com/preact?module';
 (function () {
-    var worker = new Worker("webworker.js");
+    var worker;
     var isSuccess = false;
     var ping = Math.random();
     function getState() {
@@ -56,6 +56,22 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
             _this.addTest = function (newTest) { return _this.setState(function (state) { return (__assign(__assign({}, state), { tests: __spreadArray(__spreadArray([], state.tests, true), [newTest], false) })); }); };
             _this.setAssumption = function (assumption) { return _this.setState(function (state) { return (__assign(__assign({}, state), { assumption: assumption })); }); };
             _this.finish = function () { return _this.setState(function (state) { return (__assign(__assign({}, state), { isFinished: true })); }); };
+            _this.initWorker = function () {
+                worker = new Worker("webworker.js");
+                worker.addEventListener('message', function (evt) {
+                    switch (evt.data.type) {
+                        case 'tested':
+                            var _a = evt.data, a = _a.a, b = _a.b, c = _a.c, actual = _a.actual;
+                            _this.addTest({ a: a, b: b, c: c, actual: actual });
+                            break;
+                        case 'finish':
+                            isSuccess = evt.data.isSuccess && (ping === evt.data.pong);
+                            _this.setState(function (state) { return (__assign(__assign({}, state), { actual: evt.data.actual, expected: evt.data.expected })); });
+                            _this.finish();
+                            break;
+                    }
+                });
+            };
             _this.restart = function () {
                 isSuccess = false;
                 _this.setState(getState());
@@ -81,21 +97,13 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
             };
             _this.makeAssumption = function () {
                 ping = Math.random();
+                if (_this.state.assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
+                    return;
+                }
+                _this.initWorker();
                 worker.postMessage({ type: 'testHypothesis', assumption: _this.state.assumption, ping: ping });
             };
-            worker.addEventListener('message', function (evt) {
-                switch (evt.data.type) {
-                    case 'tested':
-                        var _a = evt.data, a = _a.a, b = _a.b, c = _a.c, actual = _a.actual;
-                        _this.addTest({ a: a, b: b, c: c, actual: actual });
-                        break;
-                    case 'finish':
-                        isSuccess = evt.data.isSuccess && (ping === evt.data.pong);
-                        _this.setState(function (state) { return (__assign(__assign({}, state), { actual: evt.data.actual, expected: evt.data.expected })); });
-                        _this.finish();
-                        break;
-                }
-            });
+            _this.initWorker();
             worker.postMessage({ type: 'test', a: 1, b: 2, c: 3 });
             return _this;
         }

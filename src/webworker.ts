@@ -53,10 +53,6 @@ function testHypothesis(assumption:string) {
 		return;
 	}
 
-	if (assumption.indexOf('=>') > -1 && !confirm(`'=>' in JS doesn't mean equal-or-great. Do you with to process?`)) {
-		return
-	}
-
 	const hypothesis:HypothesisTest = new HypothesisTest(assumption);
 	
 	for (let a=0;a<10;a++) {

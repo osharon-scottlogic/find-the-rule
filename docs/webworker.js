@@ -46,9 +46,6 @@ function testHypothesis(assumption) {
     if (!assumption || assumption.length <= 5) {
         return;
     }
-    if (assumption.indexOf('=>') > -1 && !confirm("'=>' in JS doesn't mean equal-or-great. Do you with to process?")) {
-        return;
-    }
     var hypothesis = new HypothesisTest(assumption);
     for (var a = 0; a < 10; a++) {
         for (var b = 0; b < 10; b++) {

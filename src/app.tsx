@@ -3,9 +3,9 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 (() =>{
 	type Test = {a:number,b:number,c:number, expected?:boolean, actual: boolean}
 	type Values = {a:number|'', b:number|'', c:number|''};
-	type State = {tests:Test[], assumption?:string, actual?:string, isFinished:boolean, val: Values };
+	type State = {tests:Test[], assumption:string, actual?:string, isFinished:boolean, val: Values };
 
-	const worker = new Worker("webworker.js");
+	let worker:Worker;
 	let isSuccess = false;
 	let ping = Math.random();
 
@@ -28,6 +28,13 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 
 		constructor() {
 			super();
+
+			this.initWorker();
+			worker.postMessage({type:'test', a:1, b:2, c:3 });
+		}
+
+		initWorker = () => {
+			worker = new Worker("webworker.js");
 			worker.addEventListener('message', (evt:MessageEvent) => {
 				switch(evt.data.type) {
 					case 'tested':
@@ -41,9 +48,8 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 						break;
 				}
 			});
-
-			worker.postMessage({type:'test', a:1, b:2, c:3 });
 		}
+
 		restart = () => {
 			isSuccess = false;
 			this.setState(getState()); 
@@ -75,6 +81,11 @@ import { h, render, Component } from 'https://unpkg.com/preact?module';
 
 		makeAssumption = () => {
 			ping = Math.random();
+			if (this.state.assumption.indexOf('=>') > -1 && !confirm(`'=>' in JS doesn't mean equal-or-great. Do you with to process?`)) {
+				return
+			}
+			
+			this.initWorker();
 			worker.postMessage({ type: 'testHypothesis', assumption: this.state.assumption, ping })
 		};
 
